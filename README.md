@@ -18,3 +18,33 @@ A simple web app to keep track of the mountains you have climbed 🥾!
 ### Infrastructure on AWS
 - API: AWS Lambda
 - DB: DynamoDB
+
+
+## Setup Guide
+
+Clone and install dependencies
+```
+yarn
+```
+#### Setup AWS
+Follow the guide [here ](https://sst.dev/docs/aws-accounts) or use your existing AWS profile.
+
+Make sure to update the AWS profile name in `sst.config.ts`
+```js
+providers: {
+        aws: {
+          profile: input.stage === "production" ? "" : "CHANGE_THIS" <----
+        }
+}
+```
+
+#### Start Dev mode
+`npx sst dev`
+
+#### Deployment
+`npx sst deploy`
+
+For more information read the [SST docs](https://sst.dev/docs/)
+
+
+

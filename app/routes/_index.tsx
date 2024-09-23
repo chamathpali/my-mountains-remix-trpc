@@ -1,6 +1,6 @@
 import { ActionFunctionArgs, json, type MetaFunction } from "@remix-run/node";
 import { useState } from 'react'
-import { Search, Plus, MapPin, Calendar, BarChart2, Footprints } from "lucide-react"
+import { Search, Plus, MapPin, Calendar, BarChart2, Footprints, ArrowUpIcon, ArrowDownIcon, MinusIcon } from "lucide-react"
 import { Input } from "~/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card";
 import { Label } from "~/components/ui/label";
@@ -33,7 +33,20 @@ export default function Index() {
 
   const filteredMountains = mountains.filter(mountain =>
     mountain.name.toLowerCase().includes(searchTerm.toLowerCase())
-  )
+  );
+
+  const totalDistance = mountains.reduce((acc, mountain) => acc + mountain.distance, 0).toFixed(2);
+
+  const countLastYear = mountains.filter(mountain =>
+    mountain.climbedAt < (new Date().getFullYear() - 1).toString()
+  ).length;
+
+  const countThisYear = mountains.filter(mountain =>
+    mountain.climbedAt >= (new Date().getFullYear()).toString()
+  ).length;
+
+  const difference = countThisYear - countLastYear;
+
   const handleAddMountain = () => {
     setNewMountain({ name: '', climbedAt: '', distance: 0, level: 5, location: '' });
     setIsDialogOpen(false);
@@ -45,16 +58,52 @@ export default function Index() {
         <h1 className="text-2xl font-bold ">My Mountain List ⛰️</h1>
         <p className="text-muted-foreground mb-4">Keep Track of the Mountains you have climbed!</p>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 pb-4">
+          <Card className="w-full max-w-sm mx-auto">
+            <CardContent className="p-6">
+              <div className="flex justify-between items-center mb-4">
+                <div className="text-center">
+                  <p className="text-sm text-muted-foreground">Last Year</p>
+                  <p className="text-4xl font-bold text-muted-foreground">{countLastYear}</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-sm text-muted-foreground">This Year</p>
+                  <p className="text-4xl font-bold">{countThisYear}</p>
+                </div>
+              </div>
+              <div className="mt-4 text-center">
+                <p className="text-sm inline-flex items-center" aria-live="polite">
+                  {difference !== 0 ? (
+                    <>
+                      {difference > 0 ? (
+                        <ArrowUpIcon className="w-4 h-4 mr-1 text-green-500" aria-hidden="true" />
+                      ) : (
+                        <ArrowDownIcon className="w-4 h-4 mr-1 text-red-500" aria-hidden="true" />
+                      )}
+                      <span className={difference > 0 ? "text-green-500" : "text-red-500"}>
+                        {Math.abs(Number(((difference / countLastYear) * 100).toFixed(1)))}% {difference > 0 ? "increase" : "decrease"}
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <MinusIcon className="w-4 h-4 mr-1 text-gray-500" aria-hidden="true" />
+                      <span>No change</span>
+                    </>
+                  )}
+                </p>
+
+              </div>
+            </CardContent>
+          </Card>
           <Card>
             <CardHeader>
-              <CardDescription>Total Climbed</CardDescription>
-              <CardTitle className="text-4xl">20.4 <span className="text-muted-foreground">km</span></CardTitle>
+              <CardDescription>Total Distance</CardDescription>
+              <CardTitle className="text-4xl">{totalDistance} <span className="text-muted-foreground">km</span></CardTitle>
             </CardHeader>
           </Card>
           <Card>
             <CardHeader>
-              <CardDescription>Mountains</CardDescription>
-              <CardTitle className="text-4xl">20</CardTitle>
+              <CardDescription>Total Mountains</CardDescription>
+              <CardTitle className="text-4xl">{mountains.length}</CardTitle>
             </CardHeader>
           </Card>
         </div>

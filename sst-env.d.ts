@@ -9,6 +9,10 @@ declare module "sst" {
       "type": "sst.aws.Remix"
       "url": string
     }
+    "MyMountainsDB": {
+      "name": string
+      "type": "sst.aws.Dynamo"
+    }
     "Trpc": {
       "name": string
       "type": "sst.aws.Function"

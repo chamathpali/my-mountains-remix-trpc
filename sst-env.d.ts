@@ -13,6 +13,10 @@ declare module "sst" {
       "name": string
       "type": "sst.aws.Dynamo"
     }
+    "OPENAI_API_KEY": {
+      "type": "sst.sst.Secret"
+      "value": string
+    }
     "Trpc": {
       "name": string
       "type": "sst.aws.Function"

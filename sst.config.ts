@@ -15,6 +15,10 @@ export default $config({
   },
   async run() {
 
+
+    // This is optional: to generate AI summaries
+    const OpenAIKey = new sst.Secret("OPENAI_API_KEY", 'OPTIONAL');
+
     // Setup DynamoDB Table
     const table = new sst.aws.Dynamo("MyMountainsDB", {
       fields: {
@@ -28,7 +32,7 @@ export default $config({
     const trpc = new sst.aws.Function("Trpc", {
       url: true,
       handler: "server/index.handler",
-      link: [table]
+      link: [table, OpenAIKey]
     });
 
     new sst.aws.Remix("MyMountains", { link: [trpc] });

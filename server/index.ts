@@ -13,6 +13,7 @@ import {
     DynamoDBDocumentClient,
     ScanCommand,
     PutCommand,
+    DeleteCommand,
 } from "@aws-sdk/lib-dynamodb";
 
 const client = new DynamoDBClient({});
@@ -40,7 +41,7 @@ const router = t.router({
                         TableName: Resource.MyMountainsDB.name,
                         FilterExpression: "begins_with(metadata, :prefix)",
                         ExpressionAttributeValues: {
-                          ":prefix": "CLIMBED",
+                            ":prefix": "CLIMBED",
                         },
                     })
                 );
@@ -65,6 +66,14 @@ const router = t.router({
         .output(ResponseSchema)
         .query(async ({ input }) => {
             try {
+
+                // TODO: Optional GenAI summary for the mountain
+                let generatedSummary = null;
+                if(Resource.OPENAI_API_KEY.value != 'OPTIONAL'){
+                    generatedSummary =  'TODO';
+                }
+                //
+
                 const create = await dynamo.send(
                     new PutCommand({
                         TableName: Resource.MyMountainsDB.name,
@@ -76,7 +85,9 @@ const router = t.router({
                             climbedAt: input.climbedAt,
                             level: input.level,
                             location: input.location,
-                            views: 0
+                            genAISummary: generatedSummary,
+                            views: 0,
+                            createdAt: new Date().toISOString()
                         },
                     })
                 );
@@ -89,6 +100,33 @@ const router = t.router({
             }
 
             return { "message": "Failed to add Mountain!", status: false };
+        }),
+    delete: publicProcedure
+        .input(z.object({
+            uuid: z.string(),
+            metadata: z.string()
+        }))
+        .output(ResponseSchema)
+        .mutation(async ({ input }) => {
+            try {
+                const deleted = await dynamo.send(
+                    new DeleteCommand({
+                        TableName: Resource.MyMountainsDB.name,
+                        Key: {
+                            uuid: input.uuid,
+                            metadata: input.metadata,
+                        },
+                    })
+                );
+
+                if (deleted.$metadata.httpStatusCode === 200) {
+                    return { "message": "Mountain Deleted Successfully!", status: true }
+                }
+            } catch (e) {
+                console.log(e);
+            }
+
+            return { "message": "Failed to delete Mountain!", status: false };
         }),
 });
 

@@ -1,13 +1,13 @@
 import { ActionFunctionArgs, json, type MetaFunction } from "@remix-run/node";
-import { useState } from 'react'
-import { Search, Plus, MapPin, Calendar, BarChart2, Footprints, ArrowUpIcon, ArrowDownIcon, MinusIcon } from "lucide-react"
+import { useEffect, useState } from 'react'
+import { Search, Plus, MapPin, Calendar, BarChart2, Footprints, ArrowUpIcon, ArrowDownIcon, MinusIcon, Trash, Bot } from "lucide-react"
 import { Input } from "~/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card";
 import { Label } from "~/components/ui/label";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "~/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "~/components/ui/dialog";
 import { Button } from "~/components/ui/button";
 import client from "~/trpcClient.server";
-import { useFetcher, useLoaderData } from "@remix-run/react";
+import { Form, useActionData, useFetcher, useLoaderData } from "@remix-run/react";
 import { MountainCardSkeleton } from "~/components/MountainCardSkeleton";
 
 export const meta: MetaFunction = () => {
@@ -19,7 +19,7 @@ export const meta: MetaFunction = () => {
 
 export async function loader() {
   const mountains = await client.list.query();
-  console.log("loader", mountains)
+  // console.log("loader", mountains)
 
   return json(mountains);
 }
@@ -30,6 +30,9 @@ export default function Index() {
   const [searchTerm, setSearchTerm] = useState('');
   const [newMountain, setNewMountain] = useState<typeof mountains[number]>({ name: '', climbedAt: '', distance: 0, level: 5, location: '' });
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [selectedMountainSummary, setSelectedMountainSummary] = useState<string | boolean>(false);
+
+  const actionData = useActionData<typeof action>();
 
   const filteredMountains = mountains.filter(mountain =>
     mountain.name.toLowerCase().includes(searchTerm.toLowerCase())
@@ -51,6 +54,14 @@ export default function Index() {
     setNewMountain({ name: '', climbedAt: '', distance: 0, level: 5, location: '' });
     setIsDialogOpen(false);
   }
+
+  useEffect(() => {
+    if (actionData) {
+      const message = actionData.status ? actionData.message : 'Something Went Wrong';
+      alert(message);
+    }
+
+  }, [actionData])
 
   return (
     <div className="flex h-screen p-4 dark:bg-background">
@@ -198,6 +209,15 @@ export default function Index() {
               <CardHeader className="pb-2">
                 <div className="flex justify-between items-center">
                   <CardTitle className="text-2xl font-bold">{mountain.name}</CardTitle>
+                  <Button
+                    variant="outline"
+                    // disabled={!mountain.genAISummary}
+                    onClick={() => setSelectedMountainSummary(mountain.genAISummary ?? 'test')}
+                    size="icon"
+                    className="bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 hover:from-blue-600 hover:via-purple-600 hover:to-pink-600 text-white rounded-full p-2"
+                  >
+                    <Bot className="h-8 w-8" color="white" />
+                  </Button>
                 </div>
               </CardHeader>
               <CardContent className="space-y-2">
@@ -220,10 +240,37 @@ export default function Index() {
                     {mountain.level}/10
                   </div>
                 </div>
+                <div className="flex items-center space-x-2">
+                  <span className="text-gray-400 text-xs">
+                    Created at: {mountain.createdAt ? new Date(mountain.createdAt).toLocaleString('en-GB', { timeZone: 'UTC' }) : null}
+                  </span>
+                  <Form method="DELETE">
+                    <input name="uuid" hidden value={mountain.uuid} />
+                    {/* This is the SK for dynamoDB */}
+                    <input name="metadata" hidden value={mountain.metadata} />
+                    <Button type="submit" variant="ghost" size="icon">
+                      <Trash className="h-4 w-4" color="red" />
+                    </Button>
+                  </Form>
+                </div>
               </CardContent>
             </Card>
 
           ))}
+
+          <Dialog open={!!selectedMountainSummary} onOpenChange={setSelectedMountainSummary}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle className="flex items-center bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 hover:from-blue-600 hover:via-purple-600 hover:to-pink-600 text-white p-2 mt-2 rounded-md">
+                  <Bot className="h-8 w-8 mr-2" />AI Generated Summary </DialogTitle>
+                <DialogDescription>
+                  <div>
+                    {selectedMountainSummary}
+                  </div>
+                </DialogDescription>
+              </DialogHeader>
+            </DialogContent>
+          </Dialog>
         </div>
         {filteredMountains.length === 0 && (
           <p className="text-center text-gray-500 mt-4">No mountains found.</p>
@@ -236,19 +283,31 @@ export default function Index() {
 export async function action({
   request,
 }: ActionFunctionArgs) {
-  const formData = await request.formData();
 
-  const name = formData.get("name")?.toString() ?? '';
-  const distance = formData.get("distance")?.toString() ?? '';
-  const location = formData.get("location")?.toString() ?? '';
-  const level = formData.get("level")?.toString() ?? '';
-  const climbedAt = formData.get("climbedAt")?.toString() ?? '';
+  if (request.method === "POST") {
+    const formData = await request.formData();
+    const name = formData.get("name")?.toString() ?? '';
+    const distance = formData.get("distance")?.toString() ?? '';
+    const location = formData.get("location")?.toString() ?? '';
+    const level = formData.get("level")?.toString() ?? '';
+    const climbedAt = formData.get("climbedAt")?.toString() ?? '';
 
-  if (!name || !distance || !location || !climbedAt || !level) {
-    return json({ error: "All fields are required" }, { status: 400 });
+    if (!name || !distance || !location || !climbedAt || !level) {
+      return json({ message: "All fields are required", status: false }, { status: 400 });
+    }
+
+    return await client.add.query({ name, distance: parseFloat(distance), location, level: parseFloat(level), climbedAt })
   }
 
-  await client.add.query({ name, distance: parseFloat(distance), location, level: parseFloat(level), climbedAt })
+  if (request.method === "DELETE") {
+    const formData = await request.formData();
+    const uuid = formData.get('uuid')?.toString();
+    const metadata = formData.get('metadata')?.toString();
 
-  return json({ ok: true });
+    if (!uuid || !metadata) {
+      return json({ message: "All fields are required", status: false }, { status: 400 });
+    }
+
+    return json(await client.delete.mutate({ uuid: uuid, metadata: metadata }));
+  }
 }

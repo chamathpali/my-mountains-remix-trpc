@@ -4,9 +4,10 @@ An example app using SST, Remix and tRPC to create a modern and typesafe project
 ### Features
 A simple web app to keep track of the mountains you have climbed 🥾!
 
-- [ ] List all Mountains - GET
-- [ ] Create Mountain - POST
-- [ ] Inner Mountain page - GET
+- [X] List all Mountains - GET
+- [X] Create Mountain - POST
+- [X] Delete Mountain - DELETE
+- [ ] Integrate OpenAI API for text summary (Optional)
 
 
 ### Tech Stack
@@ -18,7 +19,13 @@ A simple web app to keep track of the mountains you have climbed 🥾!
 ### Infrastructure on AWS
 - API: AWS Lambda
 - DB: DynamoDB
+- CloudFront Distribution
+- Assets: S3 Bucket
+- Remix SSR: AWS Lambda
 
+## Screenshot
+
+TODO:
 
 ## Setup Guide
 

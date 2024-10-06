@@ -14,5 +14,7 @@ export const MountainSchema = z.object({
     distance: z.number(),
     location: z.string(),
     climbedAt: z.string(),
+    createdAt: z.string().optional(),
+    genAISummary: z.string().nullable().optional(), // Only if using the OpenAI API
     level: z.number(),
 })

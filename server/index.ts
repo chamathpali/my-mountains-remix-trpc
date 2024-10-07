@@ -15,9 +15,17 @@ import {
     PutCommand,
     DeleteCommand,
 } from "@aws-sdk/lib-dynamodb";
+import OpenAI from "openai";
+import prompt from "./prompt";
+
 
 const client = new DynamoDBClient({});
 const dynamo = DynamoDBDocumentClient.from(client);
+
+// Optional
+const openai = new OpenAI({
+    apiKey: Resource.OPENAI_API_KEY.value
+});
 
 const t = initTRPC
     .context<CreateAWSLambdaContextOptions<APIGatewayProxyEvent | APIGatewayProxyEventV2>>()
@@ -67,10 +75,26 @@ const router = t.router({
         .query(async ({ input }) => {
             try {
 
-                // TODO: Optional GenAI summary for the mountain
+                // Optional OpenAI call to Generate a summary for the mountain
                 let generatedSummary = null;
-                if(Resource.OPENAI_API_KEY.value != 'OPTIONAL'){
-                    generatedSummary =  'TODO';
+                if (Resource.OPENAI_API_KEY.value != 'OPTIONAL') {
+                    const completion = await openai.chat.completions.create({
+                        model: "gpt-4o-mini",
+                        max_tokens: 2048,
+                        response_format: {
+                            "type": "json_object"
+                        },
+                        messages: [
+                            { role: "system", content: prompt },
+                            {
+                                role: "user",
+                                content: input.name + " " + input.location,
+                            },
+                        ],
+                    });
+
+                    const generatedContent = completion.choices[0].message.content ?? '';
+                    generatedSummary = JSON.parse(generatedContent).summary ?? '';
                 }
                 //
 

@@ -4,10 +4,32 @@
 
 html,
 body {
-  @apply bg-white dark:bg-gray-950;
 
   @media (prefers-color-scheme: dark) {
     color-scheme: dark;
+  }
+}
+
+.generated-content{
+  h1 {
+    font-size: 18px;
+    font-weight: bold;
+    padding-bottom: 10px;
+  }
+
+  h2 {
+    font-size: 16px;
+    font-weight: bold;
+    padding-bottom: 10px;
+  }
+
+  ul{
+    padding-top: 10px;
+    padding-bottom: 10px;
+  }
+
+  li{
+    padding: 4px;
   }
 }
 

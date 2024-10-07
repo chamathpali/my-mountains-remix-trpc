@@ -4,7 +4,7 @@ import { Search, Plus, MapPin, Calendar, BarChart2, Footprints, ArrowUpIcon, Arr
 import { Input } from "~/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card";
 import { Label } from "~/components/ui/label";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "~/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "~/components/ui/dialog";
 import { Button } from "~/components/ui/button";
 import client from "~/trpcClient.server";
 import { Form, useActionData, useFetcher, useLoaderData } from "@remix-run/react";
@@ -40,13 +40,20 @@ export default function Index() {
 
   const totalDistance = mountains.reduce((acc, mountain) => acc + mountain.distance, 0).toFixed(2);
 
-  const countLastYear = mountains.filter(mountain =>
-    mountain.climbedAt < (new Date().getFullYear() - 1).toString()
-  ).length;
-
-  const countThisYear = mountains.filter(mountain =>
-    mountain.climbedAt >= (new Date().getFullYear()).toString()
-  ).length;
+  const currentYear = new Date().getFullYear();
+  const lastYear = currentYear - 1;
+  
+  const { countLastYear, countThisYear } = mountains.reduce((counts, mountain) => {
+    const climbedYear = new Date(mountain.climbedAt).getFullYear();
+    
+    if (climbedYear === lastYear) {
+      counts.countLastYear++;
+    } else if (climbedYear === currentYear) {
+      counts.countThisYear++;
+    }
+    
+    return counts;
+  }, { countLastYear: 0, countThisYear: 0 });
 
   const difference = countThisYear - countLastYear;
 
@@ -64,7 +71,7 @@ export default function Index() {
   }, [actionData])
 
   return (
-    <div className="flex h-screen p-4 dark:bg-background">
+    <div className="flex p-4 dark:bg-background">
       <div className="container mx-auto p-2">
         <h1 className="text-2xl font-bold ">My Mountain List ⛰️</h1>
         <p className="text-muted-foreground mb-4">Keep Track of the Mountains you have climbed!</p>
@@ -83,7 +90,7 @@ export default function Index() {
               </div>
               <div className="mt-4 text-center">
                 <p className="text-sm inline-flex items-center" aria-live="polite">
-                  {difference !== 0 ? (
+                  {difference !== 0 && countLastYear !== 0 ? (
                     <>
                       {difference > 0 ? (
                         <ArrowUpIcon className="w-4 h-4 mr-1 text-green-500" aria-hidden="true" />
@@ -91,7 +98,9 @@ export default function Index() {
                         <ArrowDownIcon className="w-4 h-4 mr-1 text-red-500" aria-hidden="true" />
                       )}
                       <span className={difference > 0 ? "text-green-500" : "text-red-500"}>
-                        {Math.abs(Number(((difference / countLastYear) * 100).toFixed(1)))}% {difference > 0 ? "increase" : "decrease"}
+                        {countLastYear !== 0 ? (
+                          `${Math.abs(Number(((difference / countLastYear) * 100).toFixed(1)))}% ${difference > 0 ? "increase" : "decrease"}`
+                        ) : ''}
                       </span>
                     </>
                   ) : (
@@ -211,8 +220,8 @@ export default function Index() {
                   <CardTitle className="text-2xl font-bold">{mountain.name}</CardTitle>
                   <Button
                     variant="outline"
-                    // disabled={!mountain.genAISummary}
-                    onClick={() => setSelectedMountainSummary(mountain.genAISummary ?? 'test')}
+                    disabled={!mountain.genAISummary}
+                    onClick={() => setSelectedMountainSummary(mountain.genAISummary ?? 'Unable to Generate Content for this Mountain!')}
                     size="icon"
                     className="bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 hover:from-blue-600 hover:via-purple-600 hover:to-pink-600 text-white rounded-full p-2"
                   >
@@ -260,15 +269,11 @@ export default function Index() {
 
           <Dialog open={!!selectedMountainSummary} onOpenChange={setSelectedMountainSummary}>
             <DialogContent>
-              <DialogHeader>
-                <DialogTitle className="flex items-center bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 hover:from-blue-600 hover:via-purple-600 hover:to-pink-600 text-white p-2 mt-2 rounded-md">
-                  <Bot className="h-8 w-8 mr-2" />AI Generated Summary </DialogTitle>
-                <DialogDescription>
-                  <div>
-                    {selectedMountainSummary}
-                  </div>
-                </DialogDescription>
-              </DialogHeader>
+              <DialogTitle className="flex items-center bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 hover:from-blue-600 hover:via-purple-600 hover:to-pink-600 text-white p-2 mt-2 rounded-md">
+                <Bot className="h-8 w-8 mr-2" />AI Generated Summary </DialogTitle>
+              <div className="p-4 bg-gray-100 dark:bg-gray-800 rounded-lg max-h-[500px] overflow-y-auto generated-content ">
+                <div className="dark:text-white" dangerouslySetInnerHTML={{ __html: selectedMountainSummary ? selectedMountainSummary : '' }}></div>
+              </div>
             </DialogContent>
           </Dialog>
         </div>
